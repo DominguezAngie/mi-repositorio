@@ -1,0 +1,495 @@
+---
+title: "Visualización de datos"
+author: "Angie Dominguez"
+format: html
+editor: visual
+---
+
+# Paquetes para visualizar datos
+
+```{r}
+#install.packages("gridExtra")
+```
+
+```{r}
+library(tidyverse)
+library(rio)
+library(here)
+library(gridExtra) ## Para múltiple gráficos en una sola página
+library(GGally) ## Para gráficos de correlación
+library(forcats)
+```
+
+# Cargando los datos
+
+```{r}
+getwd()
+
+list.files("data")
+
+file.exists("data/diabetes.csv")
+
+```
+
+El *dataset* contiene información de **768 pacientes y 9 variables** relacionadas a la enfermedad de diabetes. Incluye variables clínicas y antropométricas, como niveles de glucosa, presión sanguínea, índice de masa corporal (IMC), edad, número de embarazos, antecedentes familiares de diabetes y resultados positivos o negativos para esta enfermedad.
+
+## Examinamos los datos
+
+`str()` es la función para ver la estructura de los datos.
+
+```{r}
+file.choose()
+```
+
+```{r}
+library(rio)
+
+data_diabetes_0 <- import(file.choose())
+
+str(data_diabetes_0)
+```
+
+## Conversión de caracteres a factor (categóricos) usando la función `mutate_if()`
+
+En la base de datos de diabetes, las variables categóricas deben estar representadas como factores para facilitar su análisis estadístico y visualización. Utilizamos la función `mutate_if()` para convertir las variables almacenadas como caracteres en factores.
+
+```{r}
+
+data_diabetes <- data_diabetes_0 |>
+  mutate_if(is.character, as.factor)
+
+str(data_diabetes)
+
+```
+
+# Visualizando datos: el molde
+
+Para realizar visualizaciones con el paquete ggplot2, debemos reemplazar lo que esta encerrado en los signos. Este es el molde fundamental para crear gráficos más complejos.
+
+`<midata> |> ggplot(aes(x = <var1>, y = <var2>)) + geom_<xxxx>()`
+
+- <midata> : el nombre del dataset a utilizar.
+- \|\> : esto es llamado "pipe", la cual conecta los datos a la función ggplot
+- \+ : usa + par conectar declaraciones de ggplot
+- <var> : la variable, cuyos datos serán usados para crear el gráfico.
+- geom\_<xxxx>: indica la función para crear el tipo de gráfico. Ej. geom_bar, para crear gráficos de barra.
+
+# Visualizando distribución de datos
+
+# 1. Visualizando datos categóricos
+
+Para visualizar los datos de pacientes con diabetes, utilizaremos el paquete `ggplot2`. Su estructura permite seleccionar las variables del conjunto de datos y representar su distribución mediante diferentes tipos de gráficos.
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = diabetes_5a)) +
+  geom_bar() +
+  labs(
+    x = "Resultado de diabetes",
+    y = "Frecuencia",
+    title = "Distribución de pacientes según diabetes"
+  )
+
+```
+
+El gráfico muestra que el 65,1 % de los registros presenta resultados negativos para diabetes, mientras que el 34,9 % corresponde a resultados positivos. Por lo tanto, predominan los casos negativos en la base analizada
+
+Aquí, añadimos la función `fct_infreq()` de paquete forcats para ordenar (en orden decreciente) las barras del conteo.
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = fct_infreq(diabetes_5a))) +
+  geom_bar()
+
+
+```
+
+El gráfico ordena las categorías según su frecuencia, mostrando primero los resultados negativos y después los positivos, lo que facilita identificar el grupo predominante.
+
+Con la función `labs()` podemos añadir nombres a los ejes del gráficos.
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = fct_infreq(diabetes_5a))) +
+  geom_bar() +
+  labs(
+    y = "Frecuencia",
+    x = "Resultado de diabetes"
+  )
+
+```
+
+El gráfico muestra que, de los 768 registros analizados, 500 (65,1 %) presentan resultado negativo para diabetes y 268 (34,9 %) resultado positivo. Por tanto, predominan los resultados negativos.
+
+Para el gráfico de barra podemos usar frecuencias relativas. Por ejemplo, un gráfico de barras que muestre proporciones. Aquí es necesario calcular las proporciones. Nota que seguida a `y =` se muestra el cálculo para convertir los conteos a proporciones.
+
+```{r}
+data_diabetes |>
+  ggplot(aes(x = diabetes_5a,
+             y = after_stat(count / sum(count)))) +
+  geom_bar() +
+  labs(
+    y = "Proporción",
+    x = "Resultado de diabetes"
+  )
+```
+
+El gráfico muestra que el 65,1 % de los registros presenta resultados negativos para diabetes, mientras que el 34,9 % presenta resultados positivos. Por tanto, predominan los resultados negativos en la base analizada.
+
+# 2. Visualizando Datos Numéricos
+
+## 2.1. Con histogramas
+
+Los histogramas permiten visualizar la distribución de frecuencias de variables numéricas. En este caso, utilizaremos la variable `glucosa_2h`, que representa los niveles de glucosa registrados en la base de datos. Para generar el histograma se emplea la función `geom_histogram()` del paquete `ggplot2`.
+
+```{r}
+data_diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(na.rm = TRUE) +
+  labs(
+    y = "Frecuencia",
+    x = "Glucosa a las 2 horas"
+  )
+
+```
+
+El histograma muestra la distribución de los niveles de glucosa en 763 registros válidos. Se observa una mayor concentración de valores en la zona central de la distribución y una disminución progresiva de las frecuencias hacia los valores más elevados. Se excluyeron cinco registros por presentar valores faltantes.
+
+**Histograma de densidad:** Permite visualizar la distribución de los niveles de glucosa mediante densidades en lugar de frecuencias absolutas. El área total de las barras representa una unidad (1).
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    na.rm = TRUE
+  ) +
+  labs(
+    y = "Densidad",
+    x = "Glucosa a las 2 horas"
+  )
+```
+
+El histograma de densidad representa cómo se distribuyen los niveles de glucosa en los registros válidos. Permite identificar las zonas donde se concentran los valores y observar la forma de su distribución.
+
+Para comparar diferentes representaciones de una misma variable, utilizaremos la función `grid.arrange()`, que permite mostrar dos histogramas de glucosa: uno basado en frecuencias absolutas y otro en densidades.
+
+```{r}
+
+hist_1 = data_diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(na.rm = TRUE) +
+  labs(
+    y = "Frecuencia",
+    x = "Glucosa a las 2 horas"
+  )
+
+hist_2 = data_diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    na.rm = TRUE
+  ) +
+  labs(
+    y = "Densidad",
+    x = "Glucosa a las 2 horas"
+  )
+```
+
+```{r}
+
+grid.arrange(hist_1, hist_2, ncol = 2)
+```
+
+Ambos histogramas representan la distribución de los niveles de glucosa. El primero muestra la cantidad de registros por intervalo, mientras que el segundo presenta su densidad. Aunque utilizan diferentes escalas verticales, permiten observar la misma distribución de los datos.
+
+**Conteo con un número de barras distinto**
+
+Podemos modificar el número de intervalos del histograma utilizando el argumento `bins` de la función `geom_histogram()`. En este caso, representaremos los niveles de glucosa mediante 10 intervalos.
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(bins = 10, na.rm = TRUE) +
+  labs(
+    y = "Frecuencia",
+    x = "Glucosa a las 2 horas"
+  )
+```
+
+El histograma presenta la distribución de los niveles de glucosa agrupados en 10 intervalos, facilitando la identificación de los rangos con mayor concentración de registros.
+
+**Modificando los colores de las barras del histograma.**
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(
+    color = "white",
+    fill = "cornflowerblue",
+    na.rm = TRUE
+  ) +
+  labs(
+    y = "Frecuencia",
+    x = "Glucosa a las 2 horas"
+  )
+```
+
+Modificando color en gráficos de barras. Nota que aquí, usamos el argumento fill para colorear las barras pertenecientes a las categorías.
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(
+    x = fct_infreq(diabetes_5a),
+    fill = diabetes_5a
+  )) +
+  geom_bar() +
+  labs(
+    y = "Frecuencia",
+    x = "Resultado de diabetes"
+  )
+```
+
+El gráfico muestra que los resultados negativos para diabetes representan el 65,1 % de los registros, mientras que los positivos corresponden al 34,9 %. Los colores permiten diferenciar visualmente ambas categorías.
+
+## 2.2. Con Boxplots (gráfico de cajas y bigotes)
+
+Para mostrar datos de una variable en un gráfico de cajas y bigotes usamos la función `geom_boxplot()`
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(y = imc)) +
+  geom_boxplot(na.rm = TRUE) +
+  theme(
+    axis.text.x = element_blank()
+  ) +
+  labs(
+    y = "Índice de masa corporal (IMC)",
+    x = ""
+  )
+```
+
+El gráfico muestra que el IMC se concentra principalmente entre 27 y 37 kg/m². Además, se observan valores atípicos elevados que superan los 50 kg/m², lo que indica una mayor dispersión hacia valores altos.
+
+La función nativa de R, `boxplot()`, permite realizar el mismo gráfico.
+
+```{r}
+
+box_imc_base = boxplot(
+  data_diabetes$imc,
+  ylab = "Índice de masa corporal (IMC)",
+  horizontal = TRUE,
+  col = "salmon"
+)
+  
+```
+
+El IMC se concentra principalmente entre 27 y 37 kg/m². Se observan valores atípicos superiores a 50 kg/m², lo que evidencia una mayor dispersión hacia valores elevados.
+
+# 3. Visualizando variables categóricas *versus* categóricas
+
+La base de datos de diabetes contiene una sola variable categórica (`diabetes_5a`), que clasifica los resultados en positivos y negativos. Por ello, para esta representación gráfica utilizaremos excepcionalmente la variable numérica `num_embarazos`, tratándola como categórica, con la finalidad de comparar la frecuencia de resultados de diabetes según el número de embarazos.
+
+```{r}
+
+data_diabetes |>
+  mutate(num_embarazos = as.factor(num_embarazos)) |>
+  ggplot(aes(x = num_embarazos, fill = diabetes_5a)) +
+  geom_bar(position = "dodge") +
+  labs(
+    y = "Frecuencia",
+    x = "Número de embarazos",
+    fill = "Resultado de diabetes"
+  )
+```
+
+Qué esta mal con esto?
+
+```{r}
+
+data_diabetes |>
+  mutate(num_embarazos = as.factor(num_embarazos)) |>
+  group_by(num_embarazos, diabetes_5a) |>
+  count() |>
+  group_by(num_embarazos) |>
+  mutate(Proportion = n/sum(n)) |>
+  ggplot(aes(
+    x = num_embarazos,
+    y = Proportion,
+    fill = diabetes_5a
+  )) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(
+    y = "Proporción",
+    x = "Número de embarazos",
+    fill = "Resultado de diabetes"
+  )
+```
+
+El gráfico muestra la proporción de resultados positivos y negativos para diabetes dentro de cada categoría de número de embarazos, facilitando la comparación de su distribución relativa.
+
+```{r}
+
+addmargins(
+  prop.table(
+    table(
+      data_diabetes$diabetes_5a,
+      data_diabetes$num_embarazos
+    ),
+    margin = 2
+  ),
+  1
+)
+```
+
+# 4. Visualizando distribución de variables continuas *versus* categóricas
+
+## 4.1. Gráficos de barras
+
+Se utilizará un gráfico de barras agrupadas con barras de error para comparar el promedio de glucosa según el número de embarazos y el resultado de diabetes. Las barras de error representan la desviación estándar de cada grupo.
+
+```{r}
+
+data_diabetes |>
+  mutate(num_embarazos = as.factor(num_embarazos)) |>
+  filter(!is.na(glucosa_2h) &
+           !is.na(diabetes_5a)) |>
+  group_by(num_embarazos, diabetes_5a) |>
+  summarise(
+    n = n(),
+    promedio = mean(glucosa_2h, na.rm = TRUE),
+    de = sd(glucosa_2h, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = num_embarazos,
+             y = promedio,
+             fill = diabetes_5a)) +
+  geom_bar(stat = "identity",
+           position = "dodge") +
+  geom_errorbar(
+    aes(ymin = promedio - de,
+        ymax = promedio + de),
+    width = 0.5,
+    linewidth = 0.75,
+    position = position_dodge(0.9)
+  ) +
+  labs(
+    y = "Promedio de glucosa",
+    x = "Número de embarazos",
+    fill = "Resultado de diabetes"
+  )
+```
+
+El gráfico compara los promedios de glucosa entre resultados positivos y negativos para diabetes según el número de embarazos. Las barras de error permiten observar la variabilidad de los niveles de glucosa dentro de cada grupo.
+
+## 4.1. Boxplots lado a lado
+
+El gráfico permite comparar la mediana, la dispersión y los valores atípicos del IMC entre los grupos con resultados positivos y negativos para diabetes.
+
+```{r}
+
+data_diabetes |>
+  filter(!is.na(imc) &
+           !is.na(diabetes_5a)) |>
+  ggplot(aes(y = imc,
+             x = diabetes_5a)) +
+  geom_boxplot() +
+  labs(
+    y = "Índice de masa corporal (IMC)",
+    x = "Resultado de diabetes"
+  )
+```
+
+```{r}
+data_diabetes |>
+  filter(!is.na(imc) &
+           !is.na(diabetes_5a)) |>
+  ggplot(aes(y = imc,
+             x = diabetes_5a,
+             fill = diabetes_5a)) +
+  geom_boxplot() +
+  labs(
+    y = "Índice de masa corporal (IMC)",
+    x = "Resultado de diabetes",
+    fill = "Diabetes"
+  )
+```
+
+## 4.3. Filas de histogramas
+
+```{r}
+
+data_diabetes |>
+  filter(!is.na(glucosa_2h) &
+           !is.na(diabetes_5a)) |>
+  group_by(diabetes_5a) |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = 20,
+    color = "black",
+    fill = "white"
+  ) +
+  labs(
+    x = "Glucosa a las 2 horas",
+    y = "Densidad"
+  ) +
+  facet_wrap(~diabetes_5a, nrow = 2) +
+  ggtitle("Distribución de glucosa según resultado de diabetes")
+```
+
+Los pacientes con resultado negativo para diabetes presentan una mayor concentración de glucosa alrededor de 90 a 110, mientras que los positivos muestran valores más elevados, principalmente entre 120 y 180. Esto evidencia que la distribución de glucosa se desplaza hacia valores superiores en el grupo positivo.
+
+# 5. Visualización para variables continuas versus continuas
+
+Usamos la función geom_point para generar gráficos de dispersión y visualizar la relación de dos varaibles numéricas
+
+```{r}
+
+data_diabetes |>
+  ggplot(aes(x = imc, y = glucosa_2h)) +
+  geom_point() +
+  labs(
+    x = "Índice de masa corporal (IMC)",
+    y = "Glucosa a las 2 horas"
+  )
+```
+
+El gráfico muestra una ligera tendencia positiva entre el IMC y los niveles de glucosa. La mayoría de los registros se concentran entre un IMC de 25 y 40 y valores de glucosa de 80 a 160. Sin embargo, la dispersión de los puntos indica que la relación visual no es muy marcada.
+
+Finalmente, la función `ggpairs()` permite visualizar multiple variables numerica a la vez. Aquí, combinamos la funciónm select() (para seleccionar las variables numéricas) y ggpairs, para generar el gráfico y los coeficientes de correlación.
+
+```{r}
+
+data_diabetes |>
+  select(glucosa_2h, imc, edad) %>%
+  ggpairs(
+    columnLabels = c(
+      "Glucosa",
+      "IMC",
+      "Edad"
+    )
+  )
+```
+
+Se observa una correlación positiva débil entre glucosa e IMC (r = 0,233) y entre glucosa y edad (r = 0,267). En cambio, la relación entre IMC y edad es prácticamente nula (r = 0,026). Por tanto, la edad presenta una asociación ligeramente mayor con la glucosa que el IMC, aunque ambas relaciones son débiles.
+
+# 6. Exportando figuras
+
+```{r}
+
+ggsave(
+  "grafico_diabetes.png",
+  width = 7,
+  height = 4,
+  dpi = 300
+)
+```

@@ -1,0 +1,339 @@
+---
+title: "Regresión Lineal Simple y prueba t de Student"
+author: "Angie Dominguez"
+format: html
+editor: visual
+---
+
+# Cargar e instalar paquetes
+
+```{r}
+install.packages("car") # Para la prueba de Levene
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary)
+library(car)
+```
+
+# Cargando los datos
+
+```{r}
+# Importar la base de datos de diabetes
+diabetes <- read.csv(
+  "~/Downloads/estadistica/diabetes (1).csv"
+)
+
+# Verificar que los datos se cargaron correctamente
+View(diabetes)
+
+# Ver nombres de las variables
+names(diabetes)
+```
+
+# Sobre los datos para esta práctica
+
+El dataset circun_glucosa, de 1000 personas adultas (\>=20 años de edad), contiene datos glucosa medida en ayunas (en mg/dL), cirunferencia de cintura (en centimetros), tabaquismo y otros datos demográficos.
+
+# 1 Regresión lineal simple
+
+Regresión es una método para evaluar la asociación entre una variable dependiente (tambien llamado desenlace Y) y una o varias variables independientes (predictoras X1, X2,..., Xk). Los modelos de regresión lineal simple (o univariable) utilizan solo solo una variable independiente o predictora X. Ejemplos de preguntas de investigación se puede responder usando un modelo de regresión lineal:
+
+- **¿Existe una asociación lineal entre el índice de masa corporal (IMC) y el nivel de glucosa a las dos horas?**
+
+  - Variable dependiente (Y): `glucosa_2h`.
+
+  - Variable independiente (X): `imc`.
+
+## 1.1 El problema en este ejercicio
+
+El desenlace Y de interés para este ejercicio es la variable glucosa a las dos horas (`glucosa_2h`).
+
+Se analizará su distribución mediante un histograma, que permite visualizar la frecuencia de los valores de glucosa y señalar su promedio.
+
+Posteriormente, se evaluará si el índice de masa corporal (IMC) se encuentra asociado linealmente con los niveles de glucosa.
+
+```{r}
+
+library(ggplot2)
+
+diabetes |>
+  ggplot(aes(x = glucosa_2h)) +
+  geom_histogram(
+    color = "white",
+    na.rm = TRUE
+  ) +
+  labs(
+    y = "Frecuencia",
+    x = "Glucosa a las 2 horas"
+  ) +
+  geom_vline(
+    xintercept = mean(diabetes$glucosa_2h,
+                      na.rm = TRUE),
+    color = "darkred",
+    linewidth = 1.5
+  )
+```
+
+En estos datos, el promedio de la glucosa es:
+
+```{r}
+
+mean(diabetes$glucosa_2h, na.rm = TRUE)
+```
+
+## 1.2 Notación en el método de regresión lineal simple
+
+El método de regresión lineal simple permite identificar la línea que mejor describe la asociación lineal entre el nivel de glucosa a las dos horas y el índice de masa corporal.
+
+En este análisis, la glucosa representa la variable dependiente (Y), mientras que el IMC constituye la variable independiente (X).
+
+La línea de regresión permitirá visualizar la dirección de la asociación entre ambas variables.
+
+```{r}
+
+plot(glucosa_2h ~ imc,
+     data = diabetes,
+     col = "gray",
+     ylab = "Glucosa a las 2 horas",
+     xlab = "Indice de masa corporal (IMC)",
+     las = 1,
+     pch = 20,
+     font.lab = 2,
+     font.axis = 2)
+
+abline(
+  lm(glucosa_2h ~ imc, data = diabetes),
+  lwd = 2,
+  col = "darkred"
+)
+```
+
+La ecuación siguiente ecuación describe un modelo de regresión lineal simple para 𝑌 usando un predictor continuo 𝑋. $$Y = \beta_0 + \beta_1 X + \epsilon$$ Cuando ajustamos un modelo de regresión lineal simple a nuestros datos, estimamos (hallamos) los parámetros del modelo que mejor explican la relación entre las dos variables (desenlace y predictor), incluyendo los coeficientes (β₀, β₁) y el error (𝜀), que representa la variabilidad no explicada por el modelo.
+
+Para un predictor continuo, el intercepto (β₀) es el valor esperado de Y cuando X = 0 (es decir, el promedio del resultado cuando el predictor es cero). La pendiente (β₁) es el cambio promedio en Y por cada unidad de cambio en X. El término de error (𝜀) representa la diferencia entre los valores observados y los valores predichos por el modelo.
+
+Aplicado a nuestro ejemplo, el intercepto (β₀) representa la circunferencia de cintura promedio cuando la glucosa en ayunas es cero (aunque este valor puede no tener sentido práctico, es necesario matemáticamente). La pendiente (β₁) indica cuánto aumenta (o disminuye) en promedio la circunferencia de la cintura por cada unidad adicional de glucosa en ayunas (medida en mg/dL). El error (𝜀) recoge la variación individual que no es explicada solo por la glucosa.
+
+Asi que, como el objetivo es hallar los valores de los parámetros (β₀,β₁,𝜀), es apropiado decir que estamos 'ajustando el modelo de regresión lineal simple' para el problema planteado (a.k.a la asociación entre glucosa y la circunferencia de cintura)
+
+## 1.3 Ajustando el modelo de regresión lineal simple para nuestro problema
+
+En RStudio se utiliza la función `lm()` para ajustar un modelo de regresión lineal simple. En este caso, se analizará la glucosa a las dos horas como variable dependiente y el IMC como variable independiente.
+
+Ajustando el modelo para nuestros datos
+
+```{r}
+
+modelo_ejemplo <- lm(
+  glucosa_2h ~ imc,
+  data = diabetes
+)
+
+summary(modelo_ejemplo)
+
+```
+
+Para ver los resultados, usamos la función summary() y dentro, el objeto modelo_ejemplo.
+
+```{r}
+
+summary(modelo_ejemplo)$coef
+```
+
+## 1.4 Interpretando los resultados
+
+La sección Coefficients del resultado:
+
+```{r}
+
+summary(modelo_ejemplo)$r.squared
+```
+
+La sección *Coefficients* presenta las estimaciones del intercepto (β₀) y del coeficiente del índice de masa corporal (β₁).
+
+En la columna *Estimate* se obtuvo un intercepto de 88,577541 y una pendiente de 1,028017. Asimismo, el valor p del IMC fue menor que 0,001, lo que evidencia una asociación lineal positiva estadísticamente significativa con la glucosa a las dos horas.
+
+# 2 Prueba t de Student para muestras independientes
+
+En este ejercicio queremos determinar si el promedio del índice de masa corporal (IMC) es significativamente diferente entre los participantes con resultados positivos y negativos para diabetes.
+
+Se comparan dos grupos independientes utilizando una variable cuantitativa (IMC) y una variable cualitativa binaria (resultado de diabetes).
+
+## 2.1 ¿Cuándo usar la prueba t de Student para muestras independientes?
+
+- Cuando los dos grupos de muestras a comparar han sido muestreadas de una distribución normal. Aquí podemos usar la prueba de Shapiro-Wilk.
+
+- Cuando las varianzas de los dos grupos son iguales. Esto puede ser evaluado con la prueba F.
+
+Usualmente, la hipótesis de la prueba t de Student son:
+
+- Hipótesis nula (H₀): No hay diferencia entre las medias de los dos grupos. $$H_0: \mu_1 = \mu_2$$
+- Hipótesis alternativa (H₁): Hay una diferencia entre las medias de los dos grupos. $$H_1: \mu_1 \neq \mu_2$$
+
+## 2.2 Sobre los datos
+
+La base de datos `diabetes` contiene 768 registros y nueve variables relacionadas con indicadores de salud y el resultado de diabetes.
+
+Para esta prueba se utilizarán el índice de masa corporal (`imc`) y el resultado de diabetes (`diabetes_5a`), clasificado en dos categorías: positivo y negativo.
+
+## 2.3 Resumen y visualización
+
+```{r}
+
+library(dplyr)
+
+group_by(diabetes, diabetes_5a) |>
+  summarise(
+    count = sum(!is.na(imc)),
+    mean = mean(imc, na.rm = TRUE),
+    sd = sd(imc, na.rm = TRUE)
+  )
+```
+
+Visualización
+
+```{r}
+
+diabetes |>
+  filter(!is.na(diabetes_5a) & !is.na(imc)) |>
+  ggplot(aes(y = imc, x = diabetes_5a)) +
+  geom_boxplot() +
+  labs(
+    y = "Indice de masa corporal (IMC)",
+    x = "Resultado de diabetes"
+  )
+```
+
+## 2.4 Pruebas preliminares para evaluar los supuestos de la prueba t de Student
+
+Primera prueba: grupo positivo
+
+```{r}
+
+diabetes |>
+  dplyr::filter(diabetes_5a == "positivo") |>
+  dplyr::summarise(
+    shapiro = list(shapiro.test(na.omit(imc)))
+  ) |>
+  dplyr::pull(shapiro)
+```
+
+```{r}
+
+diabetes |>
+  filter(diabetes_5a == "negativo") |>
+  summarise(
+    shapiro = list(shapiro.test(na.omit(imc)))
+  ) |>
+  pull(shapiro)
+```
+
+Para evaluar la homogeneidad de varianzas del índice de masa corporal (IMC) entre los participantes con resultados positivos y negativos para diabetes, utilizamos la prueba F, implementada en RStudio mediante la función `var.test()`.
+
+Esta prueba permite determinar si existe una diferencia estadísticamente significativa entre las varianzas de ambos grupos.
+
+```{r}
+
+var.test(imc ~ diabetes_5a, data = diabetes)
+```
+
+## 2.5 Realizamos la prueba t para nuestros datos.
+
+```{r}
+
+t.test(
+  imc ~ diabetes_5a,
+  data = diabetes,
+  var.equal = TRUE
+)
+```
+
+**Interpretando los resultados**
+
+El valor p de la prueba es 0.003615, lo cual es menor que el nivel de significancia α = 0.05. Por lo tanto, podemos concluir que la circunferencia promedio del brazo en hombres es significativamente diferente de la circunferencia promedio en mujeres.
+
+# 3 Análisis de Varianza (ANOVA)
+
+El análisis de varianza (ANOVA), especificamente el ANOVA de una vía, es una extensión de la prueba t para muestras independientes cuando se comparan medias entre más de dos grupos. En el ANOVA de una vía, los datos se organizan en varios grupos basados en una única variable de agrupación (también llamada variable de factor). En este ejecicio, evaluamos si el peso corporal (kg) es significativamente distinto segun estado de tabaquismo.
+
+## 3.1 ¿Cuándo usar el ANOVA de una vía?
+
+- Las observaciones se obtienen de forma independiente y aleatoria de la población definida por los niveles del factor.
+
+- Los datos de cada nivel del factor se distribuyen normalmente.
+
+- Hipótesis nula (H₀): No hay diferencia entre las medias de los dos grupos.
+
+- Estas poblaciones normales tienen una varianza común. (Se puede usar la prueba de Levene para verificar esto.)
+
+## 3.2 Sobre los datos para esta práctica
+
+El dataset circun_glucosa, de 1000 personas adultas (\>=20 años de edad), contiene datos de peso corpotal (kg), la variable tabaquismo y otros datos demográficos.
+
+## 3.3 Resumen y visualización
+
+Resumen
+
+Esta función permite obtener el número de registros, la media y la desviación estándar.
+
+```         
+```
+
+```{r}
+
+library(dplyr)
+
+datos_anova <- diabetes |>
+  filter(num_embarazos %in% c(0, 1, 2)) |>
+  mutate(num_embarazos = as.factor(num_embarazos))
+
+datos_anova |>
+  group_by(num_embarazos) |>
+  summarise(
+    n = sum(!is.na(glucosa_2h)),
+    media = mean(glucosa_2h, na.rm = TRUE),
+    sd = sd(glucosa_2h, na.rm = TRUE)
+  )
+
+```
+
+Visualización
+
+```{r}
+circun_glucosa |>  
+  filter(!is.na(tabaquismo)& !is.na(peso_corp_kg))  |> 
+  ggplot(aes(y = peso_corp_kg, x = tabaquismo)) +
+  geom_boxplot() +
+  labs(y = "Peso corporal (kg)", x = "Sexo")
+```
+
+## 3.5 Realizamos la prueba de ANOVA de una vía para nuestros datos.
+
+```{r}
+
+res_anova <- aov(
+  glucosa_2h ~ num_embarazos,
+  data = datos_anova
+)
+
+summary(res_anova)
+
+```
+
+```{r}
+summary(res_anova)
+```
+
+**Interpretando los resultados**
+
+Dado que el valor p es mayor que el nivel de significancia 0.05, podemos concluir que no existen diferencias significativas entre los grupos.
+
+Aunque para este ejecicio no hemos encontrado una diferencia estadísticamente significativa, cuando sí lo hay, es importante realizar una prueba de comparación por pares para saber dónde se encuentra la diferencia. Para esto, se puede utilizar la prueba Tukey HSD (Tukey Honest Significant Differences)
+
+```{r}
+TukeyHSD(res_aov)
+```

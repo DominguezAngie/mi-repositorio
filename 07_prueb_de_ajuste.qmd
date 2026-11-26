@@ -1,0 +1,162 @@
+---
+title: "Bondad de ajuste"
+format: html
+editor: Angie Dominguez
+  markdown: 
+    wrap: 72
+---
+
+### Glosario introductorio
+
+**1. Modelo estadístico**\
+Es una representación matemática que describe relaciones entre variables. Se utiliza para hacer inferencias, predicciones o entender el comportamiento de los datos.
+
+**2. Variable continua**\
+Tipo de variable numérica que puede tomar un número infinito de valores dentro de un rango (por ejemplo, niveles de glucosa o circunferencia de cintura).
+
+**3. Distribución de probabilidad**\
+Describe cómo se distribuyen los valores posibles de una variable aleatoria. Algunas distribuciones comunes incluyen la normal, binomial y chi-cuadrado.
+
+**4. Hipótesis nula (H₀)**\
+Proposición que se plantea al inicio de una prueba estadística y que indica la ausencia de efecto o diferencia. Se rechaza o no según el valor p obtenido.
+
+**5. Valor p**\
+Probabilidad de obtener un resultado igual o más extremo que el observado, si la hipótesis nula fuera cierta. Un valor p menor a 0.05 suele considerarse estadísticamente significativo.
+
+# ¿Que son las pruebas de bondad de ajuste?
+
+Las pruebas de bondad de ajust**e** evalúan qué tan bien los datos observados se ajustan a los valores esperados según un modelo estadístico.
+
+La bondad de ajuste puede evaluarse en al menos dos escenarios principales:
+
+### 1. En modelos de regresión
+
+Por ejemplo, un estudiante podría aplicar un modelo de regresión lineal para evaluar la relación entre el peso de los pacientes de un hospital y su nivel de glucosa. Para determinar si el modelo es adecuado para explicar esta relación, se puede calcular el estadístico de bondad de ajuste R².
+
+El estadístico R² mide el porcentaje de variabilidad de la variable dependiente (en este caso, el nivel de glucosa) que es explicado por el modelo de regresión. Cuanto mayor sea el valor de R², mejor será el ajuste del modelo a los datos observados.
+
+### 2. En distribuciones de probabilidad
+
+En algunos casos, el modelo estadístico que se desea aplicar requiere que los datos sigan una distribución de probabilidad específica, como la distribución normal.
+
+Por otro lado, muchas pruebas de hipótesis utilizan **estadísticos de prueba** (no necesariamente modelos completos). Por ejemplo:
+
+- Las **pruebas t** (t de Student) usan el estadístico *t*.
+
+- El **ANOVA** usa el estadístico *F*.
+
+- Las **pruebas de chi-cuadrado** usan el estadístico χ².
+
+Estas pruebas se basan en las distribuciones teóricas de estos estadísticos para calcular los valores p, los cuales permiten decidir si aceptar o rechazar la hipótesis nula.
+
+Este esta sesión práctica se enfocará en el segundo escenario.
+
+# Cargamos los paquetes necesarios
+
+```{r}
+library(rio)
+library(here)
+```
+
+# Cargar los datos
+
+```{r}
+
+
+# Importar la base de datos de diabetes
+diabetes <- read.csv(
+  "~/Downloads/estadistica/diabetes (1).csv"
+)
+
+# Verificar que los datos se cargaron correctamente
+View(diabetes)
+
+# Ver nombres de las variables
+names(diabetes)
+```
+
+# 1. Para datos continuos
+
+La prueba t de Student y el ANOVA son dos pruebas estadísticas ampliamente utilizadas que permiten evaluar si el valor promedio de una variable numérica difiere entre dos o más grupos o categorías.
+
+Ambas pruebas asumen que la variable continua sigue una distribución normal.\
+Pero, ¿cómo podemos comprobar si esta condición se cumple?\
+Mediante una prueba de bondad de ajuste.
+
+Una de las pruebas más comunes para evaluar la normalidad de una variable numérica es la prueba de Shapiro-Wilk. Esta prueba permite determinar si los datos provienen de una distribución normal, lo cual es un requisito clave antes de aplicar pruebas como la t de Student o el ANOVA.
+
+## Primera aplicación: normalidad de glucosa
+
+Utilizamos como variable continua la glucosa a las 2 hr prueba de Shapiro-Wilk
+
+```{r}
+
+shapiro.test(na.omit(diabetes$glucosa_2h))
+
+```
+
+## Segunda aplicación: normalidad del IMC
+
+Aplicaremos la misma función a otra variable cuantitativa de nuestra base.
+
+```{r}
+
+shapiro.test(na.omit(diabetes$imc))
+
+```
+
+## Respecto a la interpretación de los dos resultados
+
+Las hipótesis de la prueba de Shapiro-Wilk
+
+- La hipótesis nula (H₀) establece que la muestra proviene de una distribución normal.
+
+- La hipótesis alternativa (H₁) plantea que la muestra no proviene de una distribución normal.
+
+Si tomamos en cuenta que el valor de p aceptado para esta evaluación es \< 0.05, entonces el resultado de la evaluación de normalidad para la variable circunferecia de cintura indica que esta variable NO tiene una distribución normal.
+
+En contraste, el resultado para la variable glucosa (p = 0.7338) indica que la muestra sí proviene de una distribución normal.
+
+# Tercera aplicación: datos categóricos
+
+La variable `diabetes_5a` es cualitativa binaria, con dos categorías: positivo y negativo.
+
+Usaremos la función `table()` .
+
+```{r}
+
+table(diabetes$diabetes_5a)
+
+```
+
+Un estudio realizado en Australia por Keel et al. (2017) reportó una prevalencia de diabetes autorreportada del **37,11 %** en adultos indígenas australianos (DOI: <https://doi.org/10.1371/journal.pone.0169211>).
+
+En este ejercicio estadístico, utilizaremos la proporción reportada en el artículo como valor esperado de referencia, mientras que la proporción observada corresponde a los resultados de nuestra base de datos.
+
+El objetivo es evaluar si la proporción observada de resultados positivos para diabetes difiere significativamente del valor de referencia del 37,11 %, mediante la prueba de bondad de ajuste chi-cuadrado.
+
+**Las hipótesis son las siguientes:**
+
+- **Hipótesis nula (H₀):** La proporción de resultados positivos para diabetes es igual al valor esperado de referencia del 37,11 %.
+
+- **Hipótesis alternativa (H₁):** La proporción de resultados positivos para diabetes es diferente del valor esperado de referencia del 37,11 %.
+
+En RStudio, esta prueba se realiza mediante la función `chisq.test()`, proporcionando las frecuencias observadas y las proporciones esperadas.
+
+```{r}
+
+
+chisq.test(
+  x = c(268, 500),
+  p = c(0.3711, 0.6289)
+)
+
+```
+
+### Interpretación
+
+Se obtuvo un estadístico chi-cuadrado de X² = 1,6133, con un grado de libertad y un valor p = 0,204.
+
+Dado que el valor p es mayor que 0,05, no se rechaza la hipótesis nula. Por tanto, no se encontró evidencia estadísticamente significativa de diferencia entre la proporción observada de resultados positivos para diabetes (34,90 %) y el valor esperado de referencia (37,11 %).
+
+Esta comparación tiene carácter exploratorio debido a las diferencias entre las poblaciones y las formas de medición de la diabetes.

@@ -1,0 +1,155 @@
+---
+title: "Manejo de Variables - Diabetes"
+author: "Grupo 3 - Diabetes: DOMINGUEZ VASQUEZ ANGIE, AGUILAR FLORES MARIANA DEL CARMEN, CAVERO QUISPE ALEXZA ZHARICK"
+format:
+  docx:
+    toc: true
+    toc-depth: 3
+editor: visual
+---
+
+# 1. Configuración de Paquetes
+
+```{r}
+# install.packages("finalfit")
+# install.packages("flextable")
+# install.packages("gtsummary")
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary) ## Para la "Tabla 1"
+library(finalfit) ## Para recodificar
+library(flextable) ## Para exportar tablas
+```
+
+# 2. Importación del Dataset Asignado
+
+Para mostrar el proceso de inspección y limpieza de datos usaremos un dataset que contiene información de pacientes con diabetes. Abajo, el código para importar el dataset. Recuerda que el dataset `data_diabetes` debe estar en tu folder "data".
+
+```{r}
+data_diabetes = import(here("data", "diabetes.csv"))
+```
+
+# Variable Cuantitativa Glucosa (IMC) y Cualitativa (Grupo_Edad)
+
+1.  Variable Cuantivativa: Glucosa e IMC
+
+    ```{r}
+    # Resumen estadístico de Glucosa
+    summary(data_diabetes$glucosa_2h)
+    sd(data_diabetes$glucosa_2h, na.rm = TRUE)
+
+    # Resumen estadístico de IMC
+    summary(data_diabetes$imc)
+    sd(data_diabetes$imc, na.rm = TRUE)
+    ```
+
+    Realizamos el análisis descriptivo de la variable cuantitativa continua glucosa_2h. Para ello, utilizamos la función summary() para obtener las medidas de tendencia central y posición (mínimo, cuartiles, mediana, media y máximo) y la función sd() para calcular la desviación estándar, omitiendo los valores ausentes mediante na.rm = TRUE para medir la dispersión de los datos.
+
+2.  Variable Culitativa: Diagnostico
+
+    ```{r}
+    # Frecuencias absolutas y relativas del diagnóstico
+    table(data_diabetes$diabetes_5a)
+    prop.table(table(data_diabetes$diabetes_5a)) * 100
+
+    ```
+
+    En la subsección 7.2 analizamos la distribución de frecuencias de la variable cualitativa diagnostico (o diabetes_5a). Aplicamos la función table() para contabilizar las frecuencias absolutas en cada categoría de diagnóstico y la combinamos con prop.table() \* 100 para obtener las frecuencias relativas en porcentaje, permitiendo evaluar la proporción de participantes en cada grupo.
+
+3.  Tabla 1: Integrada
+
+    ```{r}
+    library(gtsummary)
+    library(dplyr)
+
+    # Reasignamos para asegurarnos de que use tu base cargada
+    data_diabetes <- read.csv("diabetes.csv")
+
+    # Crear la tabla limpia corregida
+    tabla_integrada <- data_diabetes |> 
+      select(edad, glucosa_2h, imc, diabetes_5a) |> 
+      tbl_summary(
+        by = diabetes_5a,
+        label = list(
+          edad ~ "Edad (años)",
+          glucosa_2h ~ "Glucosa 2h (mg/dL)",
+          imc ~ "IMC (kg/m²)"
+        ),
+        missing_text = "(Sin dato)"
+      ) |> 
+      add_overall() |> 
+      add_p()
+
+    # Mostrar la tabla
+    tabla_integrada
+    ```
+
+Integramos el análisis construyendo la Tabla 1 comparativa agrupada según la presencia de diabetes (diabetes_5a) mediante el paquete gtsummary. Seleccionamos las variables clave (edad, glucosa_2h, imc), aplicamos tbl_summary() para generar los descriptores automáticos, agregamos la columna general de la muestra con add_overall() y los p-valores con add_p(), concluyendo con un texto interpretativo que resume las características basales de los pacientes.
+
+## Variable cuantitativa: Presión sanguínea
+
+Para el resumen descriptivo de la variable cuantitativa presión sanguínea se calcularon medidas de tendencia central y dispersión, considerando también los valores perdidos.
+
+```{r}
+summary(data_diabetes$pres_sangu)
+sd(data_diabetes$pres_sangu, na.rm = TRUE)
+```
+
+## Variable cualitativa: Diabetes
+
+```{r}
+table(data_diabetes$Diabetes)
+prop.table(table(data_diabetes$Diabetes)) * 100
+```
+
+Interpretación: La variable Diabetes es cualitativa nominal dicotómica. De los 768 participantes, 500 (65.10 %) fueron clasificados como “No” y 268 (34.90 %) como “Sí”. Por lo tanto, predominan los participantes clasificados sin diabetes.
+
+## Creación de la Tabla
+
+Para resumir las principales características de la población estudiada se elaboró la Tabla 1, integrando variables cuantitativas y cualitativas mediante estadísticos descriptivos.
+
+```{r}
+datos_diabetes <- read.csv("diabetes.csv")
+
+datos_diabetes |> 
+  group_by(diabetes_5a) |> 
+  summarize(
+    across(
+      .cols = c(presion_sanguinea, pliegue_triceps),
+      .fns = list("Promedio" = mean, "DE" = sd),
+      na.rm = TRUE
+    )
+  )
+```
+
+Interpretación de la Tabla 1: La Tabla 1 resume las características de los 768 participantes incluidos en la base de datos. La presión sanguínea se presenta mediante la media y desviación estándar, mientras que la variable Diabetes se resume mediante frecuencias absolutas y porcentajes. De esta manera, se integran estadísticos descriptivos correspondientes a una variable cuantitativa y una variable cualitativa.
+
+**Variable Cuantitativa**: Pliegue triceps
+
+```{r}
+datos_diabetes |> 
+  group_by(diabetes_5a) |> 
+  summarize(
+    across(.cols = c(pliegue_triceps),
+           .fns = list("promedio" = mean, "DE" = sd, "máximo" = max),
+           na.rm = TRUE)
+  )
+```
+
+Mejorarmos el código de arriba añadiendo la función `where()` al argumento `.cols =`. la función `where()` de tidyverse selecciona las variables con una característica específica, por ejemplo, que sea numérica.
+
+```{r}
+datos_diabetes |> 
+  group_by(diabetes_5a) |> 
+  summarize(
+    across(.cols = where(is.numeric),
+           .fns = list("promedio" = mean, "DE" = sd, "máximo" = max),
+           na.rm = TRUE)
+  )
+```
+
+Los pacientes con diagnóstico positivo a diabetes presentan un promedio de pliegue cutáneo del tríceps mayor (**33.0 mm**) en comparación con el grupo negativo (**27.2 mm**). Esto sugiere una relación directa entre una mayor acumulación de grasa corporal periférica y la presencia de la enfermedad.
